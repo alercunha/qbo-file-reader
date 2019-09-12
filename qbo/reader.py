@@ -1,6 +1,25 @@
 import json
 import sys
+from datetime import datetime
 from os import path
+
+
+def parse_date(date_str):
+    return datetime.strptime(date_str, '%Y%m%d%H%M%S[0:GMT]')
+
+
+def parse_amount(amount_str):
+    return float(amount_str)
+
+
+class QBOTransaction:
+    def __init__(self, data):
+        self.type = data["TRNTYPE"]
+        self.deposited = parse_date(data["DTPOSTED"])
+        self.amount = parse_amount(data["TRNAMT"])
+        self.id = data["FITID"]
+        self.name = data["NAME"]
+        self.memo = data.get("MEMO", None)
 
 
 class QBOFile:
@@ -10,6 +29,19 @@ class QBOFile:
     def __init__(self, headers, root):
         self.headers = headers
         self.root = root
+        self.stmtrs = self.root["OFX"]["BANKMSGSRSV1"]["STMTTRNRS"]["STMTRS"]
+
+    def account_type(self):
+        return self.stmtrs["BANKACCTFROM"]["ACCTTYPE"]
+
+    def bank_id(self):
+        return self.stmtrs["BANKACCTFROM"]["BANKID"]
+
+    def account_id(self):
+        return self.stmtrs["BANKACCTFROM"]["ACCTID"]
+
+    def transactions(self):
+        return [QBOTransaction(t) for t in self.stmtrs["BANKTRANLIST"]["STMTTRN"]]
 
     def print(self):
         for k, v in self.headers.items():
