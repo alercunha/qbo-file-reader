@@ -29,19 +29,23 @@ class QBOFile:
     def __init__(self, headers, root):
         self.headers = headers
         self.root = root
-        self.stmtrs = self.root["OFX"]["BANKMSGSRSV1"]["STMTTRNRS"]["STMTRS"]
+        if root['OFX'].get('BANKMSGSRSV1', None):
+            stmtrs = root['OFX']['BANKMSGSRSV1']['STMTTRNRS']['STMTRS']
+            self.account_type = stmtrs['BANKACCTFROM']['ACCTTYPE']
+            self.bank_id = stmtrs['BANKACCTFROM']['BANKID']
+            self.account_id = stmtrs['BANKACCTFROM']['ACCTID']
+        elif root['OFX'].get('CREDITCARDMSGSRSV1', None):
+            stmtrs = root['OFX']['CREDITCARDMSGSRSV1']['CCSTMTTRNRS']['CCSTMTRS']
+            self.account_type = 'CREDITCARD'
+            self.bank_id = 'CREDITCARD'
+            self.account_id = stmtrs['CCACCTFROM']['ACCTID']
+        else:
+            raise Exception('Unknown QBO account type')
 
-    def account_type(self):
-        return self.stmtrs["BANKACCTFROM"]["ACCTTYPE"]
-
-    def bank_id(self):
-        return self.stmtrs["BANKACCTFROM"]["BANKID"]
-
-    def account_id(self):
-        return self.stmtrs["BANKACCTFROM"]["ACCTID"]
-
-    def transactions(self):
-        return [QBOTransaction(t) for t in self.stmtrs["BANKTRANLIST"]["STMTTRN"]]
+        stmttrn = stmtrs['BANKTRANLIST']['STMTTRN']
+        if isinstance(stmttrn, dict):
+            stmttrn = [stmttrn]
+        self.transactions = [QBOTransaction(t) for t in stmttrn]
 
     def print(self):
         for k, v in self.headers.items():
