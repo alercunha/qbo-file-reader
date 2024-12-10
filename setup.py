@@ -8,7 +8,9 @@ setup(
     author_email='ale@rcunha.net',
     license='MIT',
     packages=['qbo'],
-    install_requires=[],
+    install_requires=[
+        'pytest',
+    ],
     entry_points={},
     classifiers=[
         'Intended Audience :: Developers',
